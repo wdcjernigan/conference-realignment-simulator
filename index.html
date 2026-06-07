@@ -1,1 +1,159 @@
-<p>Hello world!</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FBS Realignment Simulator</title>
+    <style>
+        :root {
+            --bg: #f4f4f9;
+            --panel: #ffffff;
+            --accent: #2563eb;
+        }
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: var(--bg); }
+        
+        /* Map Area */
+        #map-container { flex: 2; position: relative; border-right: 2px solid #ddd; padding: 20px; }
+        svg { width: 100%; height: 100%; }
+        .team-node { cursor: pointer; transition: opacity 0.3s; stroke: #333; stroke-width: 1; }
+        .team-node:hover { stroke-width: 3; }
+        
+        /* Dithering Effect */
+        .dithered { opacity: 0.25; filter: url(#stripe-filter); }
+
+        /* Control Panel */
+        #controls { flex: 1; padding: 20px; background: var(--panel); overflow-y: auto; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        select, input { width: 100%; padding: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<!-- SVG Definitions for Dithering -->
+<svg width="0" height="0">
+    <defs>
+        <pattern id="stripe-pattern" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="4" style="stroke:#000; stroke-width:2" />
+        </pattern>
+        <mask id="stripe-mask"><rect width="100%" height="100%" fill="url(#stripe-pattern)"/></mask>
+        <filter id="stripe-filter"><feComposite in="SourceGraphic" in2="stripe-mask" operator="in" /></filter>
+    </defs>
+</svg>
+
+<div id="map-container">
+    <svg viewBox="0 0 800 500">
+        <!-- Simplified US Map Outline -->
+        <path d="M100,100 L700,100 L700,400 L100,400 Z" fill="#e0e0e0" stroke="#999"/>
+        <g id="team-layer"></g>
+    </svg>
+</div>
+
+<div id="controls">
+    <h2>Conference Simulator</h2>
+    
+    <label>Filter View:</label>
+    <select id="filter-select" onchange="applyFilter()">
+        <option value="All">All Conferences</option>
+        <option value="SEC">SEC</option>
+        <option value="Big Ten">Big Ten</option>
+        <option value="Big 12">Big 12</option>
+        <option value="ACC">ACC</option>
+    </select>
+
+    <div id="editor" class="card" style="display:none;">
+        <h3 id="team-name">Team Name</h3>
+        <label>Assign Conference:</label>
+        <select id="conf-reassign" onchange="updateTeam()">
+            <option value="SEC">SEC</option>
+            <option value="Big Ten">Big Ten</option>
+            <option value="Big 12">Big 12</option>
+            <option value="ACC">ACC</option>
+        </select>
+    </div>
+
+    <div class="card">
+        <h3>Save Configuration</h3>
+        <input type="text" id="save-name" placeholder="Config Name">
+        <button onclick="saveConfig()">Save to LocalStorage</button>
+        <select id="load-select" onchange="loadConfig()">
+            <option value="">-- Load Configuration --</option>
+        </select>
+    </div>
+</div>
+
+<script>
+    const confColors = { 'SEC': '#f00', 'Big Ten': '#00f', 'Big 12': '#f90', 'ACC': '#080' };
+    let teams = [
+        { id: 'OSU', name: 'Ohio State', conf: 'Big Ten', x: 500, y: 150 },
+        { id: 'TEX', name: 'Texas', conf: 'Big 12', x: 300, y: 300 },
+        { id: 'USC', name: 'USC', conf: 'SEC', x: 150, y: 200 },
+        { id: 'MIA', name: 'Miami', conf: 'ACC', x: 600, y: 350 }
+    ];
+    let selectedId = null;
+
+    function renderMap() {
+        const layer = document.getElementById('team-layer');
+        layer.innerHTML = '';
+        teams.forEach(t => {
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", t.x);
+            circle.setAttribute("cy", t.y);
+            circle.setAttribute("r", 15);
+            circle.setAttribute("fill", confColors[t.conf]);
+            circle.setAttribute("class", "team-node");
+            circle.onclick = () => selectTeam(t.id);
+            layer.appendChild(circle);
+        });
+        applyFilter();
+        updateLoadDropdown();
+    }
+
+    function selectTeam(id) {
+        selectedId = id;
+        const team = teams.find(t => t.id === id);
+        document.getElementById('editor').style.display = 'block';
+        document.getElementById('team-name').innerText = team.name;
+        document.getElementById('conf-reassign').value = team.conf;
+    }
+
+    function updateTeam() {
+        const team = teams.find(t => t.id === selectedId);
+        team.conf = document.getElementById('conf-reassign').value;
+        renderMap();
+    }
+
+    function applyFilter() {
+        const filter = document.getElementById('filter-select').value;
+        const nodes = document.querySelectorAll('.team-node');
+        teams.forEach((t, i) => {
+            nodes[i].classList.toggle('dithered', filter !== 'All' && t.conf !== filter);
+        });
+    }
+
+    function saveConfig() {
+        const name = document.getElementById('save-name').value || 'Default';
+        localStorage.setItem('conf_config_' + name, JSON.stringify(teams));
+        updateLoadDropdown();
+    }
+
+    function updateLoadDropdown() {
+        const select = document.getElementById('load-select');
+        select.innerHTML = '<option value="">-- Load Configuration --</option>';
+        Object.keys(localStorage).filter(k => k.startsWith('conf_config_')).forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.innerText = k.replace('conf_config_', '');
+            select.appendChild(opt);
+        });
+    }
+
+    function loadConfig() {
+        const key = document.getElementById('load-select').value;
+        if (!key) return;
+        teams = JSON.parse(localStorage.getItem(key));
+        renderMap();
+    }
+
+    renderMap();
+</script>
+</body>
+</html>
