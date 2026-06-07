@@ -5,20 +5,51 @@
     <title>FBS Realignment Simulator</title>
     <style>
         :root { --bg: #f4f4f9; --panel: #ffffff; }
-        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: var(--bg); overflow: hidden; }
         
-        /* Map Area: Fix for Flexbox SVG sizing */
-        #map-container { flex: 2; position: relative; border-right: 2px solid #ddd; padding: 20px; min-width: 0; }
-        svg { width: 100%; height: 100%; display: block; }
+        /* Force the body to take full height and prevent overflow */
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            height: 100vh; 
+            margin: 0; 
+            background: var(--bg); 
+            overflow: hidden; /* Prevents scrollbars on the whole page */
+        }
+        
+        /* Map Container: Takes 70% of width, allows it to shrink */
+        #map-container { 
+            flex: 2; 
+            position: relative; 
+            border-right: 2px solid #ddd; 
+            padding: 20px; 
+            min-width: 0; /* Critical for flex child sizing */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Ensure SVG maintains aspect ratio and fills its container */
+        svg { 
+            width: 100%; 
+            height: 100%; 
+            max-height: 80vh; /* Keeps it from being too tall */
+            display: block; 
+        }
         
         .team-node { cursor: pointer; transition: opacity 0.3s, stroke-width 0.2s; stroke: #333; stroke-width: 1; }
         .team-node:hover { stroke-width: 4; }
         .dithered { opacity: 0.25; filter: url(#stripe-filter); }
 
-        /* Control Panel */
-        #controls { flex: 1; padding: 20px; background: var(--panel); overflow-y: auto; min-width: 300px; }
+        /* Control Panel: Takes 30% of width, allows vertical scrolling */
+        #controls { 
+            flex: 0 0 300px; /* Fixed width sidebar */
+            padding: 20px; 
+            background: var(--panel); 
+            overflow-y: auto; 
+        }
+        
         .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        select, input { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; }
+        select, input, button { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; }
     </style>
 </head>
 <body>
