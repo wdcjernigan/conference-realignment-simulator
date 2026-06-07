@@ -4,35 +4,29 @@
     <meta charset="UTF-8">
     <title>FBS Realignment Simulator</title>
     <style>
-        :root {
-            --bg: #f4f4f9;
-            --panel: #ffffff;
-            --accent: #2563eb;
-        }
-        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: var(--bg); }
+        :root { --bg: #f4f4f9; --panel: #ffffff; }
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: var(--bg); overflow: hidden; }
         
-        /* Map Area */
-        #map-container { flex: 2; position: relative; border-right: 2px solid #ddd; padding: 20px; }
-        svg { width: 100%; height: 100%; }
-        .team-node { cursor: pointer; transition: opacity 0.3s; stroke: #333; stroke-width: 1; }
-        .team-node:hover { stroke-width: 3; }
+        /* Map Area: Fix for Flexbox SVG sizing */
+        #map-container { flex: 2; position: relative; border-right: 2px solid #ddd; padding: 20px; min-width: 0; }
+        svg { width: 100%; height: 100%; display: block; }
         
-        /* Dithering Effect */
+        .team-node { cursor: pointer; transition: opacity 0.3s, stroke-width 0.2s; stroke: #333; stroke-width: 1; }
+        .team-node:hover { stroke-width: 4; }
         .dithered { opacity: 0.25; filter: url(#stripe-filter); }
 
         /* Control Panel */
-        #controls { flex: 1; padding: 20px; background: var(--panel); overflow-y: auto; }
+        #controls { flex: 1; padding: 20px; background: var(--panel); overflow-y: auto; min-width: 300px; }
         .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        select, input { width: 100%; padding: 8px; margin: 10px 0; }
+        select, input { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-<!-- SVG Definitions for Dithering -->
 <svg width="0" height="0">
     <defs>
-        <pattern id="stripe-pattern" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="4" style="stroke:#000; stroke-width:2" />
+        <pattern id="stripe-pattern" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" style="stroke:#555; stroke-width:2" />
         </pattern>
         <mask id="stripe-mask"><rect width="100%" height="100%" fill="url(#stripe-pattern)"/></mask>
         <filter id="stripe-filter"><feComposite in="SourceGraphic" in2="stripe-mask" operator="in" /></filter>
@@ -40,16 +34,14 @@
 </svg>
 
 <div id="map-container">
-    <svg viewBox="0 0 800 500">
-        <!-- Simplified US Map Outline -->
-        <path d="M100,100 L700,100 L700,400 L100,400 Z" fill="#e0e0e0" stroke="#999"/>
+    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+        <rect width="800" height="500" fill="#fdfdfd" stroke="#ccc" />
         <g id="team-layer"></g>
     </svg>
 </div>
 
 <div id="controls">
     <h2>Conference Simulator</h2>
-    
     <label>Filter View:</label>
     <select id="filter-select" onchange="applyFilter()">
         <option value="All">All Conferences</option>
@@ -81,7 +73,7 @@
 </div>
 
 <script>
-    const confColors = { 'SEC': '#f00', 'Big Ten': '#00f', 'Big 12': '#f90', 'ACC': '#080' };
+    const confColors = { 'SEC': '#e63946', 'Big Ten': '#457b9d', 'Big 12': '#f4a261', 'ACC': '#2a9d8f' };
     let teams = [
         { id: 'OSU', name: 'Ohio State', conf: 'Big Ten', x: 500, y: 150 },
         { id: 'TEX', name: 'Texas', conf: 'Big 12', x: 300, y: 300 },
@@ -97,14 +89,13 @@
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("cx", t.x);
             circle.setAttribute("cy", t.y);
-            circle.setAttribute("r", 15);
-            circle.setAttribute("fill", confColors[t.conf]);
+            circle.setAttribute("r", 20);
+            circle.setAttribute("fill", confColors[t.conf] || '#999');
             circle.setAttribute("class", "team-node");
             circle.onclick = () => selectTeam(t.id);
             layer.appendChild(circle);
         });
         applyFilter();
-        updateLoadDropdown();
     }
 
     function selectTeam(id) {
@@ -131,17 +122,17 @@
 
     function saveConfig() {
         const name = document.getElementById('save-name').value || 'Default';
-        localStorage.setItem('conf_config_' + name, JSON.stringify(teams));
+        localStorage.setItem('fbs_config_' + name, JSON.stringify(teams));
         updateLoadDropdown();
     }
 
     function updateLoadDropdown() {
         const select = document.getElementById('load-select');
         select.innerHTML = '<option value="">-- Load Configuration --</option>';
-        Object.keys(localStorage).filter(k => k.startsWith('conf_config_')).forEach(k => {
+        Object.keys(localStorage).filter(k => k.startsWith('fbs_config_')).forEach(k => {
             const opt = document.createElement('option');
             opt.value = k;
-            opt.innerText = k.replace('conf_config_', '');
+            opt.innerText = k.replace('fbs_config_', '');
             select.appendChild(opt);
         });
     }
@@ -154,6 +145,7 @@
     }
 
     renderMap();
+    updateLoadDropdown();
 </script>
 </body>
 </html>
